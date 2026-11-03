@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>佳醫對帳工具</title>
+<style>
+:root{--bg:#fafaf8;--fg:#1d1d1b;--mut:#6b6b66;--card:#fff;--bd:#dcdcd4;--ac:#1f6feb;--bad:#c62828;--ok:#2e7d32;--warnbg:#fff4e5;--soft:#eef3fd;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#171716;--fg:#ececE8;--mut:#a0a09a;--card:#222220;--bd:#3a3a36;--ac:#6ea8ff;--bad:#ff8a80;--ok:#81c784;--warnbg:#3a2e1c;--soft:#1e2a3d}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#171716;--fg:#ececE8;--mut:#a0a09a;--card:#222220;--bd:#3a3a36;--ac:#6ea8ff;--bad:#ff8a80;--ok:#81c784;--warnbg:#3a2e1c;--soft:#1e2a3d}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0 auto;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;padding:16px;max-width:1000px}
+h1{font-size:20px;margin:0 0 4px}h3{font-size:15px;margin:14px 0 6px}.sub{color:var(--mut);margin:0 0 14px;font-size:13px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:12px}
+summary{cursor:pointer;font-weight:600}
+.drop{display:block;border:2px dashed var(--bd);border-radius:10px;padding:26px;text-align:center;cursor:pointer}
+.drop:hover,.drop:focus-within{border-color:var(--ac)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.stat b{display:block;font-size:20px}.stat span{color:var(--mut);font-size:12px}
+button,.btn{display:inline-block;background:var(--ac);color:#fff;border:1px solid var(--ac);border-radius:8px;padding:8px 13px;font-size:14px;cursor:pointer;font-family:inherit}
+button.ghost,.btn.ghost{background:transparent;color:var(--ac)}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,.btn:focus-within{outline:2px solid var(--ac);outline-offset:2px}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:5px 7px;max-width:100%}
+textarea{width:100%;min-height:76px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.grid label{display:flex;flex-direction:column;font-size:12px;color:var(--mut);gap:3px}
+.grid input{color:var(--fg);font-size:15px}
+.formula{background:var(--soft);border-radius:8px;padding:8px 10px;font-size:13px;margin-top:10px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}
+th,td{border-bottom:1px solid var(--bd);padding:5px 8px;text-align:right}.L{text-align:left}
+td input{width:90px;text-align:right;padding:3px 5px}
+.x{background:none;border:0;color:var(--mut);padding:2px 6px;font-size:16px}
+.bad{color:var(--bad);font-weight:600}.ok{color:var(--ok)}.need{border-color:var(--bad)}
+.warn{background:var(--warnbg);font-size:13px}.warn ol{margin:0;padding-left:20px}
+.parts{display:flex;gap:8px;margin:0 0 12px}.parts button{flex:1;text-align:left;padding:10px 12px;border-width:2px}.parts b{display:block;font-size:15px}.parts small{font-size:12px;opacity:.85}
+.tabs{display:flex;gap:6px;margin-bottom:12px}.tabs button{flex:1;padding:8px 6px}
+dialog{border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--fg);max-width:min(520px,92vw);padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.45)}dialog h2{font-size:17px;margin:0 0 10px}dialog ol{padding-left:20px;margin:0 0 14px;font-size:14px}
+.tag{display:inline-block;font-size:12px;border-radius:5px;padding:1px 6px;background:var(--soft)}.tag.alt{background:var(--warnbg)}
+td select{font-size:13px;padding:3px}
+</style>
+</head>
+<body>
+<h1>佳醫 × 伊萊克斯 對帳工具</h1>
+<p class="sub">上傳一次廠商對帳檔，分兩部分核對：Part 1 滿萬送千（Q 欄）、Part 2 品項銷補（R 欄），兩邊各自設定、各自匯出。檔案與設定只存在這台裝置的瀏覽器，不會上傳。</p>
+
+<div class="card">
+<div class="row" style="margin:0 0 8px"><span class="sub" style="margin:0">活動月份</span><select id="actsel" aria-label="選擇活動"></select><button class="ghost" id="actcopy">複製成下個月</button><button class="ghost" id="actdel">刪除這個活動</button></div>
+<div class="grid"><label>活動月份<input type="month" id="a_month"></label><label>活動名稱<input id="a_name"></label></div>
+<div class="row" style="margin:10px 0 0"><button class="ghost" id="cfgOut">備份設定</button><label class="btn ghost">還原設定<input type="file" id="cfgIn" accept=".json" hidden></label><span id="saved" class="sub" style="margin:0"></span></div>
+</div>
+
+<div class="card">
+<label class="drop" id="drop">點此選擇或拖曳廠商對帳 Excel（.xlsx）<input type="file" id="f" accept=".xlsx,.xlsm" hidden></label>
+<div class="row" id="shw" hidden style="margin:10px 0 0"><span class="sub" style="margin:0">工作表</span><select id="sh"></select></div>
+<div id="msg" class="sub" style="margin:8px 0 0"></div>
+</div>
+
+<div class="parts" role="tablist">
+<button id="p1" role="tab"><b>Part 1　滿萬送千</b><small>核對 Q 欄</small></button>
+<button id="p2" role="tab" class="ghost"><b>Part 2　品項銷補</b><small>核對 R 欄</small></button>
+</div>
+
+<section id="part1">
+<details class="card" open><summary>Part 1 規則</summary>
+<div class="grid" style="margin-top:10px">
+<label>每滿（元）<input type="number" id="a_th" min="1"></label>
+<label>送（元）<input type="number" id="a_gift" min="0"></label>
+<label>伊萊克斯負擔比例<input type="number" id="a_rate" step="0.01" min="0" max="1"></label>
+</div>
+<div class="formula" id="a_formula"></div>
+</details>
+<div id="out1" hidden>
+<div class="tabs"><button id="tq">訂單核對</button><button id="tg" class="ghost">同筆確認</button></div>
+<div class="card warn" id="warn1" hidden></div>
+<div class="card stats" id="stats1"></div>
+<div class="card">
+<div class="row"><label><input type="checkbox" id="only1" checked> 只看有差異</label><button id="dl1">匯出 Part 1 結果</button><span id="emsg1" class="sub" style="margin:0"></span></div>
+<div class="tw"><table id="tb1"></table></div>
+<div id="more1" class="sub" style="margin:8px 0 0"></div>
+</div>
+</div>
+</section>
+
+<section id="part2" hidden>
+<details class="card" open id="itembox"><summary>Part 2 本次活動銷補品項 <span id="icount" class="sub"></span></summary>
+<textarea id="paste" style="margin-top:10px" placeholder="從 Excel 選取「料號、每台銷補金額」兩欄（或「料號、品名、金額」三欄）複製，貼在這裡"></textarea>
+<div class="row" style="margin-top:6px"><button id="pasteBtn">加入貼上的品項</button><button class="ghost" id="fromFile" disabled>帶入對帳檔裡的料號</button><button class="ghost" id="clearItems">清空品項</button><span id="isaved" class="sub" style="margin:0"></span></div>
+<div class="tw"><table id="itb"></table></div>
+</details>
+<div class="card sub" id="wait2" style="margin-bottom:12px"></div>
+<div id="out2" hidden>
+<div class="card warn" id="warn2" hidden></div>
+<div class="card stats" id="stats2"></div>
+<div class="card">
+<div class="row"><span class="sub" style="margin:0">料號欄</span><select id="skuc"></select><span class="sub" style="margin:0">數量欄</span><select id="qtyc"></select></div>
+<div class="row"><label><input type="checkbox" id="only2" checked> 只看有差異</label><button id="dl2">匯出 Part 2 結果</button><span id="emsg2" class="sub" style="margin:0"></span></div>
+<div class="tw"><table id="tb2"></table></div>
+<div id="more2" class="sub" style="margin:8px 0 0"></div>
+</div>
+</div>
+</section>
+
+<dialog id="dlg"><h2 id="dlgT"></h2><div id="dlgB"></div><div class="row" style="margin:0;justify-content:flex-end"><button class="ghost" id="dlgLater">先看結果</button><button id="dlgGo">逐筆確認</button></div></dialog>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const msg=t=>$('msg').textContent=t;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const unesc=s=>s.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'")
+  .replace(/&#x([0-9a-f]+);/gi,(_,h)=>String.fromCodePoint(parseInt(h,16))).replace(/&#(\d+);/g,(_,d)=>String.fromCodePoint(+d)).replace(/&amp;/g,'&');
+const colNum=s=>[...s].reduce((a,c)=>a*26+c.charCodeAt(0)-64,0);
+const letter=n=>{let s='';while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=(n-m-1)/26}return s};
+const attr=(s,n)=>{const m=(s||'').match(new RegExp('(?:^|\\s)'+n+'="([^"]*)"'));return m?m[1]:null};
+const NS=(el,t)=>[...el.getElementsByTagNameNS('*',t)];
+const fmt=n=>n==null?'—':(Math.round(n*100)/100||0).toLocaleString(undefined,{maximumFractionDigits:2});
+const normSku=s=>String(s??'').trim().toUpperCase();
+const COL={DOC:2,CUST:5,NAME:7,O:15,Q:17,R:18};
+
+// ================= 活動設定（存在這台裝置） =================
+const LS='jiayi.acts.v1',MAPK='jiayi.map.v1';
+const ym=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+const newAct=(base,month)=>({id:'a'+Date.now()+Math.random().toString(36).slice(2,6),month,name:month+' 滿萬送千',th:10000,gift:1000,rate:0.65,items:[],...(base||{}),...(base?{id:'a'+Date.now(),month,name:month+' '+(base.name||'').replace(/^\d{4}-\d{2}\s*/,'')}:{})});
+let ACTS=(()=>{try{const s=JSON.parse(localStorage.getItem(LS));if(s&&Array.isArray(s.list)&&s.list.length)return s}catch(e){}const a=newAct(null,ym(new Date()));return {cur:a.id,list:[a]}})();
+let MAP=(()=>{try{return JSON.parse(localStorage.getItem(MAPK))||{}}catch(e){return {}}})();
+const act=()=>ACTS.list.find(a=>a.id===ACTS.cur)||ACTS.list[0];
+function persist(){try{localStorage.setItem(LS,JSON.stringify(ACTS));$('saved').textContent='已自動儲存在這台裝置'}catch(e){$('saved').textContent='無法自動儲存，請按「備份設定」保存'}}
+function drawActs(){
+  ACTS.list.sort((a,b)=>b.month.localeCompare(a.month));
+  $('actsel').innerHTML=ACTS.list.map(a=>`<option value="${a.id}"${a.id===ACTS.cur?' selected':''}>${esc(a.name)}</option>`).join('');
+  const A=act();
+  $('a_month').value=A.month;$('a_name').value=A.name;$('a_th').value=A.th;$('a_gift').value=A.gift;$('a_rate').value=A.rate;
+  $('actdel').disabled=ACTS.list.length<2;
+  drawFormula();drawItems();
+}
+function drawFormula(){const A=act();const per=(+A.gift||0)*(+A.rate||0);
+  $('a_formula').textContent=`相鄰同色的列為同一筆（可跨單號），沒上色的每列各自一筆；同一筆 O 欄加總 ÷ ${(+A.th||0).toLocaleString()} 取整 × ${(+A.gift||0).toLocaleString()} × ${A.rate}，等於每滿 ${(+A.th||0).toLocaleString()} 銷補 ${fmt(per)} 元`}
+function drawItems(){
+  const A=act(),miss=A.items.filter(i=>i.amt===''||i.amt==null).length;
+  $('itb').innerHTML=A.items.length?`<tr><th class="L">料號</th><th class="L">品名</th><th>每台銷補</th><th></th></tr>`+
+    A.items.map((it,i)=>`<tr><td class="L">${esc(it.sku)}</td><td class="L">${esc((it.name||'').slice(0,24))}</td><td><input type="number" data-i="${i}" value="${it.amt??''}" placeholder="填金額" class="${it.amt===''||it.amt==null?'need':''}" aria-label="${esc(it.sku)} 每台銷補"></td><td><button class="x" data-del="${i}" aria-label="刪除 ${esc(it.sku)}">×</button></td></tr>`).join('')+
+    `<tr><td class="L sub" colspan="4" style="border:0">共 ${A.items.length} 個品項${miss?`，<span class="bad">${miss} 個還沒填金額</span>`:''}</td></tr>`
+    :'<tr><td class="L sub" style="border:0">還沒有品項。把你整理的本次活動品項表貼在上面。</td></tr>';
+  $('icount').textContent=A.items.length?`（${A.items.length} 個）`:'（尚未設定）';
+}
+function changed(){persist();drawActs();if(R.length)compute()}
+$('actsel').onchange=e=>{ACTS.cur=e.target.value;changed()};
+$('actcopy').onclick=()=>{const A=act();const[y,m]=A.month.split('-').map(Number);const d=new Date(y,m,1);
+  const n=newAct({th:A.th,gift:A.gift,rate:A.rate,name:A.name,items:A.items.map(i=>({...i}))},ym(d));ACTS.list.push(n);ACTS.cur=n.id;changed()};
+$('actdel').onclick=()=>{if(ACTS.list.length<2)return;if(!confirm(`刪除「${act().name}」？`))return;ACTS.list=ACTS.list.filter(a=>a.id!==ACTS.cur);ACTS.cur=ACTS.list[0].id;changed()};
+[['a_month','month'],['a_name','name'],['a_th','th'],['a_gift','gift'],['a_rate','rate']].forEach(([id,k])=>$(id).onchange=e=>{
+  const A=act();let v=e.target.value;if(k==='th'||k==='gift'||k==='rate')v=v===''?0:+v;
+  if(k==='month'&&v){const old=A.month;A.month=v;if(A.name.startsWith(old))A.name=v+A.name.slice(old.length)}else A[k]=v;changed()});
+$('itb').addEventListener('change',e=>{const i=e.target.dataset.i;if(i==null)return;const A=act();A.items[+i].amt=e.target.value===''?'':+e.target.value;changed()});
+$('itb').addEventListener('click',e=>{const i=e.target.dataset.del;if(i==null)return;act().items.splice(+i,1);changed()});
+$('pasteBtn').onclick=()=>{
+  const A=act(),idx=new Map(A.items.map((x,i)=>[normSku(x.sku),i]));let add=0,upd=0,skip=0;
+  for(const line of $('paste').value.split(/\r?\n/)){
+    if(!line.trim())continue;
+    const c=(line.includes('\t')?line.split('\t'):line.split(/,|\s{2,}/)).map(s=>s.trim());
+    const sku=normSku(c[0]);const amt=+String(c[c.length-1]).replace(/[,$＄]|NT/g,'');
+    if(!sku||c.length<2||!isFinite(amt)||String(c[c.length-1]).trim()===''){skip++;continue}
+    const name=c.length>=3?c.slice(1,-1).join(' '):'';
+    if(idx.has(sku)){const it=A.items[idx.get(sku)];it.amt=amt;if(name)it.name=name;upd++}
+    else{A.items.push({sku,name,amt});idx.set(sku,A.items.length-1);add++}
+  }
+  $('paste').value='';changed();
+  $('isaved').textContent=`新增 ${add}、更新 ${upd}`+(skip?`、略過 ${skip} 行（缺料號或金額，可能是表頭）`:'');
+};
+$('fromFile').onclick=()=>{
+  const A=act(),have=new Set(A.items.map(i=>normSku(i.sku)));let n=0;
+  for(const r of R){const s=normSku(str(r.cells[SKUC]));if(s&&!have.has(s)){have.add(s);A.items.push({sku:s,name:str(r.cells[COL.NAME]),amt:''});n++}}
+  changed();$('isaved').textContent=n?`帶入 ${n} 個料號，請填上每台銷補金額；不在活動內的品項可直接刪除`:'對帳檔裡的料號都已在清單中';
+};
+$('clearItems').onclick=()=>{if(act().items.length&&confirm('清空這個活動的所有品項？')){act().items=[];changed()}};
+$('cfgOut').onclick=async()=>{await saveFile(new Blob([JSON.stringify(ACTS,null,1)],{type:'application/json'}),'佳醫對帳活動設定_'+localDate()+'.json','application/json',$('saved'))};
+$('cfgIn').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{const s=JSON.parse(await f.text());if(!s||!Array.isArray(s.list)||!s.list.length)throw 0;
+    const ids=new Set(ACTS.list.map(a=>a.id));s.list.forEach(a=>{if(!ids.has(a.id))ACTS.list.push(a)});ACTS.cur=s.cur||ACTS.cur;changed();$('saved').textContent=`已還原 ${s.list.length} 個活動`}
+  catch(_){$('saved').textContent='這不是本工具的設定檔'}};
+
+// ================= 讀取 Excel =================
+let Z=null,FN='',XFS=[],SS=[],SHEETS=[],HDR=null,MAXC=18,R=[],G=[],BASEWARN=[],R2WARN=[],COLORWARN=[],SKUC=6,QTYC=0,TAB='q',PART=1,UNITS=[],RULEG=[],ISSUES=[],MULTIDOC=0,DEC={};
+const fin=$('f');
+fin.onchange=()=>{const f=fin.files[0];fin.value='';load(f)};
+window.addEventListener('dragover',e=>e.preventDefault());
+window.addEventListener('drop',e=>{e.preventDefault();const f=e.dataTransfer&&e.dataTransfer.files[0];if(f&&!/\.json$/i.test(f.name))load(f)});
+$('sh').onchange=()=>analyze().catch(e=>msg('讀取失敗：'+e.message));
+
+const BUILTIN_DATE=new Set([14,15,16,17,18,19,20,21,22,27,28,29,30,31,32,33,34,35,36,45,46,47,50,51,52,53,54,55,56,57,58]);
+function isDateFmt(id,code){
+  if(code!=null){const c=code.replace(/"[^"]*"/g,'').replace(/\[[^\]]*\]/g,'').replace(/\\./g,'');return /[ymdhs]/i.test(c)&&!/general/i.test(c)}
+  return BUILTIN_DATE.has(id)}
+async function parseStyles(z){
+  const f=z.file('xl/styles.xml');if(!f)return [];
+  const d=new DOMParser().parseFromString(await f.async('string'),'text/xml');
+  const fmts={};NS(d,'numFmt').forEach(n=>fmts[+n.getAttribute('numFmtId')]=n.getAttribute('formatCode'));
+  const fe=NS(d,'fills')[0];
+  const fills=fe?NS(fe,'fill').map(fl=>{
+    const p=NS(fl,'patternFill')[0];if(!p||p.getAttribute('patternType')!=='solid')return null;
+    const c=NS(p,'fgColor')[0];if(!c)return null;
+    const rgb=c.getAttribute('rgb'),th=c.getAttribute('theme'),ix=c.getAttribute('indexed'),tn=c.getAttribute('tint');
+    const o={};
+    if(rgb)o.argb=(rgb.length===6?'FF'+rgb:rgb).toUpperCase();else if(th!=null)o.theme=+th;else if(ix!=null)o.indexed=+ix;else return null;
+    if(o.theme!=null&&tn!=null&&+tn!==0)o.tint=+tn;
+    const white=(o.argb&&o.argb.slice(-6)==='FFFFFF')||(o.theme===0&&!o.tint)||o.indexed===9;
+    return {color:o,key:JSON.stringify(o),white}}):[];
+  const xe=NS(d,'cellXfs')[0];
+  return xe?NS(xe,'xf').map(x=>{const id=+(x.getAttribute('numFmtId')||0);return {fill:fills[+(x.getAttribute('fillId')||0)]||null,date:isDateFmt(id,fmts[id])}}):[];
+}
+async function parseSS(z){
+  const f=z.file('xl/sharedStrings.xml');if(!f)return [];
+  const d=new DOMParser().parseFromString(await f.async('string'),'text/xml');
+  return NS(d,'si').map(si=>NS(si,'t').filter(t=>t.parentNode.localName!=='rPh').map(t=>t.textContent).join(''));
+}
+async function listSheets(z){
+  const num=p=>+(p.match(/(\d+)\.xml$/)||[0,0])[1];
+  const all=Object.keys(z.files).filter(n=>/^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort((a,b)=>num(a)-num(b));
+  try{
+    const wb=await z.file('xl/workbook.xml').async('string'),rels=await z.file('xl/_rels/workbook.xml.rels').async('string');
+    const map={};for(const m of rels.matchAll(/<Relationship\b([^>]*?)\/?>/g))map[attr(m[1],'Id')]=attr(m[1],'Target');
+    const out=[];
+    for(const m of wb.matchAll(/<(?:\w+:)?sheet\b([^>]*?)\/?>/g)){
+      const a=m[1],st=attr(a,'state');if(st==='hidden'||st==='veryHidden')continue;
+      let t=map[attr(a,'r:id')];if(!t)continue;
+      t=t.startsWith('/')?t.slice(1):'xl/'+t.replace(/^\.\//,'');
+      if(z.file(t))out.push({name:unesc(attr(a,'name')||t),path:t})}
+    if(out.length)return out;
+  }catch(e){}
+  return all.map(p=>({name:p.split('/').pop(),path:p}));
+}
+function parseSheet(xml){
+  const rows=[];let pr=0;
+  for(const m of xml.matchAll(/<row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g)){
+    const r=+(attr(m[1],'r')||pr+1);pr=r;const cells={};let pc=0;
+    if(m[2])for(const c of m[2].matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)){
+      const a=c[1],body=c[2]||'',ref=attr(a,'r');
+      const col=ref?colNum(ref.replace(/\d+/g,'')):pc+1;pc=col;
+      const t=attr(a,'t')||'n',xf=XFS[+(attr(a,'s')||0)]||{};
+      const vm=body.match(/<v>([\s\S]*?)<\/v>/),raw=vm?unesc(vm[1]):null;
+      let cell=null;
+      if(t==='s'){if(raw!=null)cell={t:'s',v:SS[+raw]??''}}
+      else if(t==='inlineStr')cell={t:'s',v:unesc([...body.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map(x=>x[1]).join(''))};
+      else if(t==='str'||t==='e'){if(raw!=null)cell={t:'s',v:raw}}
+      else if(t==='b'){if(raw!=null)cell={t:'b',v:raw==='1'}}
+      else if(raw!=null&&raw!==''){const n=+raw;cell={t:xf.date&&isFinite(n)?'d':'n',v:n}}
+      if(!cell&&xf.fill)cell={t:'x',v:null};
+      if(cell){cell.fill=xf.fill||null;cells[col]=cell}
+    }
+    rows.push({row:r,cells});
+  }
+  return rows;
+}
+function toNum(c){
+  if(!c||c.v==null||c.v==='')return {n:0,ok:true,empty:true};
+  if(c.t==='n')return {n:c.v,ok:true};
+  if(c.t!=='s')return {n:0,ok:false};
+  let s=String(c.v).replace(/[,\s$＄]|NT/g,'');let neg=false;
+  const p=s.match(/^\((.*)\)$/);if(p){s=p[1];neg=true}
+  if(s==='')return {n:0,ok:true,empty:true};
+  const n=+s;return isFinite(n)?{n:neg?-n:n,ok:true}:{n:0,ok:false};
+}
+const str=c=>c&&c.v!=null?String(c.v).trim():'';
+const hname=c=>str(HDR&&HDR.cells[c]);
+// 同一筆的顏色：先看 O 欄，沒有就看客戶欄，再看整列第一個有色儲存格
+function rowFill(r){
+  const order=[COL.O,COL.CUST,...Object.keys(r.cells).map(Number).sort((a,b)=>a-b)];
+  for(const c of order){const f=r.cells[c]&&r.cells[c].fill;if(f&&!f.white)return {fill:f,col:c}}
+  return null}
+
+async function load(file){
+  if(!file)return;
+  if(!/\.xls[xm]$/i.test(file.name)){msg('請選 .xlsx 檔（舊版 .xls 請先在 Excel 另存為 .xlsx）');return}
+  msg('讀取中…');
+  try{
+    Z=await JSZip.loadAsync(await file.arrayBuffer());FN=file.name;
+    XFS=await parseStyles(Z);SS=await parseSS(Z);SHEETS=await listSheets(Z);
+    if(!SHEETS.length)throw new Error('找不到工作表');
+    $('sh').innerHTML=SHEETS.map((s,i)=>`<option value="${i}">${esc(s.name)}</option>`).join('');
+    $('shw').hidden=SHEETS.length<2;
+    await analyze();
+  }catch(e){msg('讀取失敗：'+(/zip|central directory/i.test(e.message)?'檔案無法解開，可能有密碼保護或不是 .xlsx':e.message))}
+}
+function detectCol(re,saved,def){
+  if(saved)for(let c=1;c<=MAXC;c++)if(hname(c)===saved)return c;
+  for(let c=1;c<=MAXC;c++)if(re.test(hname(c)))return c;
+  return def}
+async function analyze(){
+  const sh=SHEETS[+$('sh').value||0];
+  const xml=await Z.file(sh.path).async('string');const rows=parseSheet(xml);DEC={};
+  if(!rows.length)throw new Error('工作表是空的');
+  HDR=rows.slice(0,30).find(r=>{const c=r.cells[COL.O];return c&&c.t==='s'&&!toNum(c).ok})||rows[0];
+  const w={total:[],badO:[],badQ:[],badR:[]};
+  R=[];MAXC=18;for(const k in HDR.cells)MAXC=Math.max(MAXC,+k);
+  const colorCols=new Map();
+  for(const r of rows){
+    if(r.row<=HDR.row)continue;
+    const doc=str(r.cells[COL.DOC]);if(!doc)continue;
+    if(/合計|總計|小計|total/i.test(doc)){w.total.push(r.row);continue}
+    const o=toNum(r.cells[COL.O]),q=toNum(r.cells[COL.Q]),rr=toNum(r.cells[COL.R]);
+    if(!o.ok)w.badO.push(r.row);if(!q.ok)w.badQ.push(r.row);if(!rr.ok)w.badR.push(r.row);
+    const rf=rowFill(r);if(rf)colorCols.set(rf.col,(colorCols.get(rf.col)||0)+1);
+    Object.assign(r,{doc,cust:str(r.cells[COL.CUST]),O:o.n,Q:q.n,Rn:rr.n,fill:rf?rf.fill:null});
+    r.key=r.fill?doc+'|'+r.fill.key:doc+'|none|'+r.row;
+    for(const k in r.cells)MAXC=Math.max(MAXC,+k);
+    R.push(r);
+  }
+  SKUC=detectCol(/料號|品號|型號|sku|商品編號|貨號/i,MAP.sku,6);
+  QTYC=detectCol(/數量|qty|台數|件數/i,MAP.qty,0);
+  const opts=(sel,withNone)=>(withNone?`<option value="0"${!sel?' selected':''}>（沒有數量欄，每列算 1）</option>`:'')+
+    Array.from({length:MAXC},(_,i)=>i+1).map(c=>`<option value="${c}"${c===sel?' selected':''}>${letter(c)}　${esc(hname(c).slice(0,14))}</option>`).join('');
+  $('skuc').innerHTML=opts(SKUC,false);$('qtyc').innerHTML=opts(QTYC,true);
+  $('fromFile').disabled=false;
+  const lst=a=>a.slice(0,12).join('、')+(a.length>12?` 等 ${a.length} 列`:'');
+  BASEWARN=[];R2WARN=[];
+  if(w.total.length)BASEWARN.push(`已略過合計列：第 ${lst(w.total)} 列`);
+  if(w.badO.length)BASEWARN.push(`O 欄不是數字、以 0 計算：第 ${lst(w.badO)} 列`);
+  if(w.badQ.length)BASEWARN.push(`Q 欄不是數字、以 0 計算：第 ${lst(w.badQ)} 列`);
+  if(w.total.length)R2WARN.push(`已略過合計列：第 ${lst(w.total)} 列`);
+  if(w.badR.length)R2WARN.push(`R 欄不是數字、以 0 計算：第 ${lst(w.badR)} 列`);
+  const cc=[...colorCols.entries()].sort((a,b)=>b[1]-a[1])[0];
+  // ----- 顏色檢查 -----
+  COLORWARN=[];
+  if(!colorCols.size)COLORWARN.push('整張表找不到底色：所有列都會各自當成一筆訂單，同一筆的金額會被低估');
+  if(/<(?:\w+:)?conditionalFormatting\b/.test(xml))COLORWARN.push('這張表有「條件式格式」，條件式格式產生的顏色讀不到；如果廠商是用它標同一筆，請請廠商改用一般填色');
+  if(colorCols.size>1){const parts=[...colorCols.entries()].sort((a,b)=>b[1]-a[1]).map(([c,n])=>`${letter(c)} 欄 ${n} 列`).join('、');COLORWARN.push(`顏色標的欄位不一致（${parts}），請確認廠商標色方式`)}
+  // ----- 同筆結構：相鄰且同色的列為同一筆（可跨單號）；沒上色的列各自一筆 -----
+  R.forEach((r,i)=>r.i=i);UNITS=[];
+  for(const r of R){const k=r.fill?r.fill.key:null,u=UNITS[UNITS.length-1];
+    if(k&&u&&u.k===k&&u.end===r.i-1&&R[u.end].row===r.row-1){u.rows.push(r);u.end=r.i}
+    else UNITS.push({id:UNITS.length,k,rows:[r],start:r.i,end:r.i})}
+  UNITS.forEach(u=>u.docs=new Set(u.rows.map(r=>r.doc)));
+  MULTIDOC=UNITS.filter(u=>u.docs.size>1).length;
+  // 疑點：同一單號被分在不同筆（沒上色、顏色斷開或顏色不同）→ 另一種算法是合併
+  ISSUES=[];const byDoc=new Map();
+  for(const u of UNITS)for(const d of u.docs){if(!byDoc.has(d))byDoc.set(d,[]);byDoc.get(d).push(u)}
+  for(const[d,us]of byDoc)if(us.length>1){
+    ISSUES.push({id:'d:'+d,type:us.every(u=>!u.k)?'nocolor':'docsplit',ruleSets:us.map(u=>u.rows),altSets:[us.flatMap(u=>u.rows)]})}
+  for(const iss of ISSUES){const all=[...new Set([...iss.ruleSets.flat()])].sort((a,b)=>a.i-b.i);iss.rows=all;
+    iss.docs=[...new Set(all.map(r=>r.doc))];iss.cust=all[0].cust;iss.Q=all.reduce((a,r)=>a+r.Q,0)}
+  msg(`${FN}｜工作表「${sh.name}」｜表頭在第 ${HDR.row} 列｜${R.length} 列資料`+(cc?`｜同筆顏色主要讀自 ${letter(cc[0])} 欄`:''));
+  compute();
+  popup();
+}
+$('skuc').onchange=e=>{SKUC=+e.target.value;MAP.sku=hname(SKUC);try{localStorage.setItem(MAPK,JSON.stringify(MAP))}catch(_){}compute()};
+$('qtyc').onchange=e=>{QTYC=+e.target.value;MAP.qty=QTYC?hname(QTYC):'';try{localStorage.setItem(MAPK,JSON.stringify(MAP))}catch(_){}compute()};
+
+// ================= 計算 =================
+function compute(){
+  const A=act(),th=+A.th||0,gift=+A.gift||0,rate=+A.rate||0;
+  const calc=rows=>{const o=Math.round(rows.reduce((a,r)=>a+r.O,0)*100)/100;return th>0?(Math.trunc(o/th)*gift*rate)||0:0};
+  // 每個疑點：規則算法 vs 另一種算法，哪個跟廠商 Q 一致就建議哪個
+  for(const iss of ISSUES){
+    iss.rule=iss.ruleSets.reduce((a,s)=>a+calc(s),0);iss.alt=iss.altSets.reduce((a,s)=>a+calc(s),0);
+    iss.impact=Math.abs(iss.rule-iss.alt)>0.5;
+    iss.rec=iss.impact&&Math.abs(iss.Q-iss.alt)+0.5<Math.abs(iss.Q-iss.rule)?'alt':'rule';
+    iss.dec=DEC[iss.id]||'rule';
+  }
+  const P=R.map((_,i)=>i),fd=x=>P[x]===x?x:(P[x]=fd(P[x])),un=(a,b)=>{a=fd(a);b=fd(b);if(a!==b)P[Math.max(a,b)]=Math.min(a,b)};
+  const join=rows=>{for(let j=1;j<rows.length;j++)un(rows[0].i,rows[j].i)};
+  UNITS.forEach(u=>join(u.rows));
+  for(const iss of ISSUES)if(iss.dec==='alt')join(iss.altSets[0]);
+  const flag=new Map();for(const iss of ISSUES)if(iss.impact)for(const r of iss.rows)flag.set(r.i,true);
+  const mp=new Map();
+  for(const r of R){r.key=fd(r.i);
+    if(!mp.has(r.key))mp.set(r.key,{key:r.key,docs:new Set(),cust:r.cust,first:r.row,n:0,O:0,Q:0,rows:[],flag:false});
+    const g=mp.get(r.key);g.docs.add(r.doc);g.n++;g.O+=r.O;g.Q+=r.Q;g.rows.push(r);if(flag.get(r.i))g.flag=true}
+  G=[...mp.values()].map(g=>{g.doc=[...g.docs].join('+');g.mine=calc(g.rows);g.diff=Math.round((g.Q-g.mine)*100)/100;return g});
+  const items=new Map(A.items.map(i=>[normSku(i.sku),i]));
+  for(const r of R){
+    r.sku=normSku(str(r.cells[SKUC]));r.pname=str(r.cells[COL.NAME]);
+    r.qty=QTYC?toNum(r.cells[QTYC]).n:1;
+    const it=items.get(r.sku);
+    if(!it){r.expR=0;r.rNote=Math.abs(r.Rn)>0.5?'非活動品項但有銷補':''}
+    else if(it.amt===''||it.amt==null||!isFinite(+it.amt)){r.expR=null;r.rNote='品項還沒填金額'}
+    else{r.expR=Math.round(r.qty*+it.amt*100)/100;r.rNote=''}
+    r.rDiff=r.expR==null?null:Math.round((r.Rn-r.expR)*100)/100;
+    if(!r.rNote&&r.rDiff!=null&&Math.abs(r.rDiff)>0.5)r.rNote=r.rDiff>0?'廠商多算':'廠商少算';
+  }
+  render();
+}
+const qBad=()=>G.filter(g=>Math.abs(g.diff)>0.5);
+const rBad=()=>R.filter(r=>r.rNote);
+const impIss=()=>ISSUES.filter(x=>x.impact);
+const TYPE={nocolor:['同單號多列但沒上色','每列各自一筆','合併為一筆'],docsplit:['同單號被顏色分成多筆','依顏色分開','合併為一筆']};
+function setPart(p){PART=p;$('p1').className=p===1?'':'ghost';$('p2').className=p===2?'':'ghost';$('part1').hidden=p!==1;$('part2').hidden=p!==2;render()}
+function setTab(t){TAB=t;$('tq').className=t==='q'?'':'ghost';$('tg').className=t==='g'?'':'ghost';render1()}
+$('p1').onclick=()=>setPart(1);$('p2').onclick=()=>setPart(2);
+$('tq').onclick=()=>setTab('q');$('tg').onclick=()=>setTab('g');
+function popup(){
+  const imp=impIss(),d=$('dlg');
+  if(!imp.length&&!COLORWARN.length&&!MULTIDOC)return;
+  const auto=imp.filter(x=>x.rec==='alt').length;
+  $('dlgT').textContent=`Part 1：讀檔結果提醒`;
+  const li=[...COLORWARN.map(x=>'顏色：'+x)];
+  if(MULTIDOC)li.push(`${MULTIDOC} 筆訂單的同色列跨了不同單號，已依顏色合併為同一筆`);
+  const cnt={};imp.forEach(x=>cnt[x.type]=(cnt[x.type]||0)+1);
+  for(const k in cnt)li.push(`${TYPE[k][0]}：${cnt[k]} 處`);
+  if(imp.length)li.push(`全部預設照規則計算；其中 ${auto} 處的另一種算法剛好跟廠商 Q 一致，已標「符合廠商 Q」供參考，要改再逐筆選`);
+  $('dlgB').innerHTML='<ol>'+li.map(x=>`<li>${esc(x)}</li>`).join('')+'</ol>';
+  $('dlgGo').hidden=!imp.length;
+  if(d.showModal)d.showModal();
+}
+$('dlgLater').onclick=()=>$('dlg').close();$('dlgGo').onclick=()=>{$('dlg').close();setPart(1);setTab('g')};
+const warnBox=(id,w)=>{$(id).hidden=!w.length;$(id).innerHTML=w.length?'<ol>'+w.map(x=>`<li>${esc(x)}</li>`).join('')+'</ol>':''};
+const statBox=(id,st)=>$(id).innerHTML=st.map(x=>`<div class="stat"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('');
+function render(){render1();render2()}
+// ---------- Part 1 ----------
+function render1(){
+  if(!R.length)return;
+  $('out1').hidden=false;$('emsg1').textContent='';
+  $('tg').textContent=`同筆確認${impIss().length?' ('+impIss().length+')':''}`;
+  warnBox('warn1',[...COLORWARN.map(x=>'顏色：'+x),...BASEWARN]);
+  if(TAB==='q'){
+    const vq=G.reduce((a,g)=>a+g.Q,0),mq=G.reduce((a,g)=>a+g.mine,0),b=qBad();
+    statBox('stats1',[['廠商 Q 合計',fmt(vq)],['核對金額',fmt(mq)],['差異（廠商−核對）',fmt(vq-mq)],['有差異訂單',b.length+' / '+G.length],['廠商多算 / 少算',b.filter(g=>g.diff>0).length+' / '+b.filter(g=>g.diff<0).length]]);
+  }else{
+    const imp=impIss(),ch=imp.filter(x=>x.dec==='alt');
+    statBox('stats1',[['需確認的同筆判斷',imp.length+' 處'],['改用另一種算法',ch.length+' 處'],['因判斷調整的金額',fmt(ch.reduce((a,x)=>a+x.alt-x.rule,0))],['不影響金額（僅提示）',(ISSUES.length-imp.length)+' 處']]);
+  }
+  table1()}
+function table1(){
+  const only=$('only1').checked;let head,list,rowH;
+  if(TAB==='q'){
+    list=(only?qBad():G).slice().sort((a,b)=>Math.abs(b.diff)-Math.abs(a.diff));
+    head='<tr><th class="L">單據號碼（同一筆）</th><th class="L">客戶</th><th>首列</th><th>列數</th><th>O 加總</th><th>廠商 Q</th><th>核對金額</th><th>差異</th></tr>';
+    rowH=g=>{const d=Math.abs(g.diff)>0.5;return `<tr><td class="L">${esc(g.doc)}${g.flag?' <span class="tag alt">同筆待確認</span>':''}</td><td class="L">${esc((g.cust||'').slice(0,12))}</td><td>${g.first}</td><td>${g.n}</td><td>${fmt(g.O)}</td><td>${fmt(g.Q)}</td><td>${fmt(g.mine)}</td><td class="${d?'bad':'ok'}">${fmt(g.diff)}</td></tr>`};
+  }else{
+    list=(only?impIss():ISSUES).slice().sort((a,b)=>Math.abs(b.alt-b.rule)-Math.abs(a.alt-a.rule));
+    head='<tr><th class="L">狀況</th><th class="L">單據號碼</th><th class="L">客戶</th><th>列號</th><th>廠商 Q</th><th>規則算法</th><th>另一種算法</th><th class="L">採用</th></tr>';
+    rowH=x=>{const t=TYPE[x.type],rr=x.rows.map(r=>r.row),ok=v=>Math.abs(x.Q-v)<=0.5?' ok':'';
+      return `<tr><td class="L">${esc(t[0])}</td><td class="L">${esc(x.docs.join('、').slice(0,30))}</td><td class="L">${esc((x.cust||'').slice(0,10))}</td><td>${rr.length>4?rr[0]+'…'+rr[rr.length-1]+`（${rr.length} 列）`:rr.join('、')}</td><td>${fmt(x.Q)}</td><td class="${ok(x.rule)}">${fmt(x.rule)}</td><td class="${ok(x.alt)}">${fmt(x.alt)}</td><td class="L"><select data-iss="${esc(x.id)}" aria-label="採用哪種算法"${x.impact?'':' disabled'}><option value="rule"${x.dec==='rule'?' selected':''}>${t[1]}</option><option value="alt"${x.dec==='alt'?' selected':''}>${t[2]}${x.rec==='alt'?'（符合廠商 Q）':''}</option></select></td></tr>`};
+  }
+  $('tb1').innerHTML=head+(list.length?list.slice(0,1000).map(rowH).join(''):`<tr><td class="L ok" colspan="8">${only?'沒有差異':'沒有資料'}</td></tr>`);
+  $('more1').textContent=list.length>1000?`畫面只列前 1,000 筆（共 ${list.length.toLocaleString()} 筆），完整清單請匯出 Excel`:'';
+}
+$('only1').onchange=table1;
+$('tb1').addEventListener('change',e=>{const id=e.target.dataset&&e.target.dataset.iss;if(!id)return;DEC[id]=e.target.value;compute()});
+// ---------- Part 2 ----------
+function render2(){
+  const A=act(),miss=A.items.filter(i=>i.amt===''||i.amt==null).length;
+  const ready=R.length&&A.items.length;
+  $('wait2').hidden=!!ready;
+  $('wait2').textContent=!R.length?'先上傳廠商對帳檔。':`「${A.name}」還沒有銷補品項。把這次活動的品項清單貼到上面，就會開始核對 R 欄。`;
+  $('out2').hidden=!ready;if(!ready)return;
+  $('emsg2').textContent='';
+  const w=[...R2WARN];
+  if(miss)w.unshift(`${miss} 個品項還沒填每台銷補金額，這些品項的列先不核對`);
+  if(!QTYC)w.push('沒有選數量欄，目前每列以 1 台計算');
+  warnBox('warn2',w);
+  const vr=R.reduce((a,r)=>a+r.Rn,0),er=R.reduce((a,r)=>a+(r.expR||0),0),b=rBad();
+  statBox('stats2',[['廠商 R 合計',fmt(vr)],['核對金額',fmt(er)],['差異（廠商−核對）',fmt(vr-er)],['有問題列數',b.length+' / '+R.length],['非活動品項有補',b.filter(r=>r.rNote==='非活動品項但有銷補').length+' 列']]);
+  table2()}
+function table2(){
+  const list=($('only2').checked?rBad():R).slice().sort((a,b)=>Math.abs(b.rDiff??1e15)-Math.abs(a.rDiff??1e15));
+  const head='<tr><th class="L">單據號碼</th><th class="L">料號</th><th class="L">品名</th><th>列號</th><th>數量</th><th>廠商 R</th><th>核對金額</th><th>差異</th><th class="L">說明</th></tr>';
+  const rowH=r=>`<tr><td class="L">${esc(r.doc)}</td><td class="L">${esc(r.sku)}</td><td class="L">${esc((r.pname||'').slice(0,18))}</td><td>${r.row}</td><td>${fmt(r.qty)}</td><td>${fmt(r.Rn)}</td><td>${fmt(r.expR)}</td><td class="${r.rNote?'bad':'ok'}">${fmt(r.rDiff)}</td><td class="L${r.rNote?' bad':''}">${esc(r.rNote)}</td></tr>`;
+  $('tb2').innerHTML=head+(list.length?list.slice(0,1000).map(rowH).join(''):`<tr><td class="L ok" colspan="9">沒有差異</td></tr>`);
+  $('more2').textContent=list.length>1000?`畫面只列前 1,000 筆（共 ${list.length.toLocaleString()} 筆），完整清單請匯出 Excel`:'';
+}
+$('only2').onchange=table2;
+
+// ================= 匯出 =================
+const xlVal=c=>!c||c.v==null||c.t==='x'?null:c.t==='d'?new Date(Date.UTC(1899,11,30)+Math.round(c.v*86400000)):c.v;
+function localDate(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`}
+async function saveFile(blob,name,_type,out){
+  const say=t=>out.textContent=t;
+  if(window.claude&&window.claude.use){
+    const d=await window.claude.use('downloads');
+    if(!d){say('這個檢視無法下載，請在 claude.ai 開啟此頁');return}
+    try{await d.save({filename:name,data:blob});say('已匯出 '+name)}
+    catch(e){const c=e&&e.code;say(c==='declined'?'已取消匯出':c==='rate_limited'?'上一個下載確認還沒完成，稍後再按一次':'匯出失敗：'+(e&&e.message||c))}
+    return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),10000);say('已匯出 '+name);
+}
+const XT='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const hd=(ws,n)=>{const r=ws.getRow(1);r.font={bold:true,color:{argb:'FFFFFFFF'}};r.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF305496'}};r.alignment={vertical:'middle',horizontal:'center',wrapText:true};ws.views=[{state:'frozen',ySplit:1}];ws.autoFilter={from:{row:1,column:1},to:{row:1,column:n}}};
+const red=c=>{c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFC7CE'}};c.font={bold:true,color:{argb:'FF9C0006'}}};
+// 原始表 + 右側核對欄（extra(r) 回傳附加值，bad(r,c) 決定是否標紅）
+function rowSheet(wb,extraHeads,extra,badIdx){
+  const w1=wb.addWorksheet('逐列對照');
+  const heads=[];for(let c=1;c<=MAXC;c++)heads.push(hname(c)||'欄'+c);
+  w1.addRow([...heads,...extraHeads]);
+  const C1=MAXC+1,n=extraHeads.length;
+  for(const r of R){
+    const vals=[];for(let c=1;c<=MAXC;c++)vals.push(xlVal(r.cells[c]));
+    const row=w1.addRow([...vals,...extra(r)]);
+    for(let c=1;c<=MAXC;c++){const cell=r.cells[c];if(!cell)continue;
+      if(cell.fill)row.getCell(c).fill={type:'pattern',pattern:'solid',fgColor:cell.fill.color};
+      if(cell.t==='d')row.getCell(c).numFmt='yyyy/mm/dd'}
+    for(let c=C1;c<C1+n;c++)row.getCell(c).numFmt='#,##0';
+    for(const k of badIdx(r))red(row.getCell(C1+k));
+  }
+  hd(w1,MAXC+n);w1.getRow(1).height=32;
+  for(let c=1;c<=MAXC+n;c++)w1.getColumn(c).width=c===COL.NAME?38:c===COL.CUST?30:c>=C1?16:12;
+}
+function guard(id,fn){return async()=>{const btn=$(id),out=$(id==='dl1'?'emsg1':'emsg2');btn.disabled=true;out.textContent='產生中…';
+  try{await fn(out)}catch(e){out.textContent='匯出失敗：'+e.message}finally{btn.disabled=false}}}
+$('dl1').onclick=guard('dl1',async out=>{
+  const A=act(),gm=new Map(G.map(g=>[g.key,g])),qb=qBad();
+  const wb=new ExcelJS.Workbook();
+  const vq=G.reduce((a,g)=>a+g.Q,0),mq=G.reduce((a,g)=>a+g.mine,0);
+  const w0=wb.addWorksheet('摘要');
+  [['項目','數值'],['活動',A.name],['Part 1 規則',`相鄰同色的列為同一筆（可跨單號），沒上色的列各自一筆；O 欄加總 ÷${A.th} 往 0 取整 ×${A.gift} ×${A.rate}；同筆疑點依「同筆判斷」頁的採用結果`],
+   ['廠商 Q 欄合計',vq],['核對金額',mq],['差異(廠商-核對)',vq-mq],['有差異訂單數',`${qb.length} / ${G.length}`]].forEach(r=>w0.addRow(r));
+  hd(w0,2);w0.getColumn(1).width=22;w0.getColumn(2).width=64;[4,5,6].forEach(i=>w0.getRow(i).getCell(2).numFmt='#,##0');
+  rowSheet(wb,['Q核對金額','廠商Q(同筆合計)','Q差異(廠商-核對)'],r=>{const g=gm.get(r.key),f=g&&g.first===r.row;return [f?g.mine:null,f?g.Q:null,f?g.diff:null]},
+    r=>{const g=gm.get(r.key);return g&&g.first===r.row&&Math.abs(g.diff)>0.5?[0,1,2]:[]});
+  const mk=(name,list)=>{const w=wb.addWorksheet(name);
+    w.addRow(['單據號碼','客戶','首列(原表列號)','列數','O欄加總','廠商Q(同筆合計)','核對金額','差異(廠商-核對)','說明']);
+    list.slice().sort((a,b)=>Math.abs(b.diff)-Math.abs(a.diff)).forEach(g=>{const r=w.addRow([g.doc,g.cust,g.first,g.n,g.O,g.Q,g.mine,g.diff,Math.abs(g.diff)<=0.5?'':g.diff>0?'廠商多算':'廠商少算']);
+      for(let c=5;c<=8;c++)r.getCell(c).numFmt='#,##0';if(Math.abs(g.diff)>0.5)r.getCell(8).font={bold:true,color:{argb:'FF9C0006'}}});
+    hd(w,9);[14,34,14,8,12,16,12,16,12].forEach((x,i)=>w.getColumn(i+1).width=x)};
+  mk('差異清單',qb);mk('訂單對帳',G);
+  const w5=wb.addWorksheet('同筆判斷');
+  w5.addRow(['狀況','單據號碼','客戶','原表列號','廠商Q','規則算法','另一種算法','參考','採用','影響金額']);
+  ISSUES.slice().sort((a,b)=>Math.abs(b.alt-b.rule)-Math.abs(a.alt-a.rule)).forEach(x=>{const t=TYPE[x.type];
+    const r=w5.addRow([t[0],x.docs.join('、'),x.cust,x.rows.map(r=>r.row).join(','),x.Q,x.rule,x.alt,x.impact?(x.rec==='alt'?t[2]+'符合廠商Q':'規則較接近'):'不影響金額',x.dec==='alt'?t[2]:t[1],x.alt-x.rule]);
+    for(let c=5;c<=7;c++)r.getCell(c).numFmt='#,##0';r.getCell(10).numFmt='#,##0';if(x.dec==='alt')r.getCell(9).font={bold:true,color:{argb:'FF9C0006'}}});
+  hd(w5,10);[24,24,26,18,12,12,12,16,16,12].forEach((x,i)=>w5.getColumn(i+1).width=x);
+  await saveFile(new Blob([await wb.xlsx.writeBuffer()],{type:XT}),`佳醫對帳_Part1_滿萬送千_${A.month}_${localDate()}.xlsx`,XT,out);
+});
+$('dl2').onclick=guard('dl2',async out=>{
+  const A=act(),rb=rBad();
+  const wb=new ExcelJS.Workbook();
+  const vr=R.reduce((a,r)=>a+r.Rn,0),er=R.reduce((a,r)=>a+(r.expR||0),0);
+  const w0=wb.addWorksheet('摘要');
+  [['項目','數值'],['活動',A.name],['Part 2 規則',`活動品項每台銷補 × ${QTYC?letter(QTYC)+' 欄數量':'每列 1 台'}；料號取自 ${letter(SKUC)} 欄；不在品項清單內應補 0`],
+   ['廠商 R 欄合計',vr],['核對金額',er],['差異(廠商-核對)',vr-er],['有問題列數',`${rb.length} / ${R.length}`]].forEach(r=>w0.addRow(r));
+  hd(w0,2);w0.getColumn(1).width=22;w0.getColumn(2).width=64;[4,5,6].forEach(i=>w0.getRow(i).getCell(2).numFmt='#,##0');
+  rowSheet(wb,['R核對金額','R差異(廠商-核對)','R說明'],r=>[r.expR,r.rDiff,r.rNote||null],r=>r.rNote?[0,1,2]:[]);
+  const w3=wb.addWorksheet('差異清單');
+  w3.addRow(['單據號碼','客戶','原表列號','料號','品名','數量','廠商R','核對金額','差異(廠商-核對)','說明']);
+  rb.slice().sort((a,b)=>Math.abs(b.rDiff??1e15)-Math.abs(a.rDiff??1e15)).forEach(r=>{const x=w3.addRow([r.doc,r.cust,r.row,r.sku,r.pname,r.qty,r.Rn,r.expR,r.rDiff,r.rNote]);for(let c=7;c<=9;c++)x.getCell(c).numFmt='#,##0';x.getCell(10).font={bold:true,color:{argb:'FF9C0006'}}});
+  hd(w3,10);[14,30,10,16,34,8,12,12,16,18].forEach((x,i)=>w3.getColumn(i+1).width=x);
+  const bs=new Map();for(const r of R){if(!r.sku)continue;const k=r.sku;if(!bs.has(k))bs.set(k,{sku:k,name:r.pname,q:0,v:0,e:0});const o=bs.get(k);o.q+=r.qty;o.v+=r.Rn;o.e+=r.expR||0}
+  const w6=wb.addWorksheet('品項彙總');
+  w6.addRow(['料號','品名','數量合計','廠商R合計','核對金額','差異(廠商-核對)']);
+  [...bs.values()].filter(o=>Math.abs(o.v)>0.5||Math.abs(o.e)>0.5).sort((a,b)=>Math.abs(b.v-b.e)-Math.abs(a.v-a.e)).forEach(o=>{const x=w6.addRow([o.sku,o.name,o.q,o.v,o.e,o.v-o.e]);for(let c=4;c<=6;c++)x.getCell(c).numFmt='#,##0';if(Math.abs(o.v-o.e)>0.5)red(x.getCell(6))});
+  hd(w6,6);[16,40,10,14,14,16].forEach((x,i)=>w6.getColumn(i+1).width=x);
+  const w4=wb.addWorksheet('活動品項');
+  w4.addRow(['料號','品名','每台銷補']);A.items.forEach(i=>w4.addRow([i.sku,i.name,i.amt===''?null:i.amt]));
+  hd(w4,3);[18,40,12].forEach((x,i)=>w4.getColumn(i+1).width=x);
+  await saveFile(new Blob([await wb.xlsx.writeBuffer()],{type:XT}),`佳醫對帳_Part2_品項銷補_${A.month}_${localDate()}.xlsx`,XT,out);
+});
+drawActs();render2();
+</script>
+</body>
+</html>
